@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>CRUD con Google Sheets</title>
+ <style>
+   body { font-family: Arial, sans-serif; }
+   .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+   .form-group { margin-bottom: 15px; }
+   .form-group label { display: block; margin-bottom: 5px; }
+   .form-group input { width: 100%; padding: 8px; }
+   .btn { padding: 10px 15px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
+   .btn:hover { background-color: #0056b3; }
+   .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+   .table th, .table td { border: 1px solid #ddd; padding: 8px; }
+   .table th { background-color: #f2f2f2; }
+   .actions { display: flex; gap: 5px; }
+   .actions button { padding: 5px 10px; }
+ </style>
+</head>
+<body>
+ <div class="container">
+   <h1>CRUD con Google Sheets</h1>
+   <div class="form-group">
+     <label for="nombre">Nombre</label>
+     <input type="text" id="nombre" name="nombre">
+   </div>
+   <div class="form-group">
+     <label for="email">Email</label>
+     <input type="email" id="email" name="email">
+   </div>
+   <button class="btn" onclick="agregarRegistro()">Agregar Registro</button>
+   <div id="resultado"></div>
+
+   <table class="table" id="tabla-registros">
+     <thead>
+       <tr>
+         <th>Nombre</th>
+         <th>Email</th>
+         <th>Acciones</th>
+       </tr>
+     </thead>
+     <tbody>
+       <!-- Aquí se insertarán los registros -->
+     </tbody>
+   </table>
+ </div>
+
+ <script>
+   // Función para cargar los registros desde Google Sheets
+   function cargarRegistros() {
+     google.script.run.withSuccessHandler(function(data) {
+       const tbody = document.querySelector('#tabla-registros tbody');
+       tbody.innerHTML = '';
+
+       data.forEach((registro, index) => {
+         if (index === 0) return; // Saltar la primera fila (encabezados)
+         const row = document.createElement('tr');
+         row.innerHTML = `
+           <td>${registro[0]}</td>
+           <td>${registro[1]}</td>
+           <td class="actions">
+             <button onclick="editarRegistro(${index + 1}, '${registro[0]}', '${registro[1]}')">Editar</button>
+             <button onclick="eliminarRegistro(${index + 1})">Eliminar</button>
+           </td>
+         `;
+         tbody.appendChild(row);
+       });
+     }).obtenerRegistros();
+   }
+
+   // Función para agregar un nuevo registro
+   function agregarRegistro() {
+     const nombre = document.getElementById('nombre').value;
+     const email = document.getElementById('email').value;
+
+     if (nombre && email) {
+       const nuevoRegistro = { nombre, email };
+       google.script.run.withSuccessHandler(function() {
+         cargarRegistros();
+         limpiarFormulario();
+       }).agregarRegistro(nuevoRegistro);
+     } else {
+       alert('Por favor, completa todos los campos.');
+     }
+   }
+
+   // Función para editar un registro
+   function editarRegistro(row, nombreActual, emailActual) {
+     const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
+     const nuevoEmail = prompt('Nuevo email:', emailActual);
+
+     if (nuevoNombre && nuevoEmail) {
+       const registroActualizado = { row, nombre: nuevoNombre, email: nuevoEmail };
+       google.script.run.withSuccessHandler(function() {
+         cargarRegistros();
+       }).actualizarRegistro(registroActualizado);
+     }
+   }
+
+   // Función para eliminar un registro
+   function eliminarRegistro(row) {
+     if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+       google.script.run.withSuccessHandler(function() {
+         cargarRegistros();
+       }).eliminarRegistro(row);
+     }
+   }
+
+   // Función para limpiar el formulario
+   function limpiarFormulario() {
+     document.getElementById('nombre').value = '';
+     document.getElementById('email').value = '';
+   }
+
+   // Cargar registros al cargar la página
+   window.onload = cargarRegistros;
+ </script>
+</body>
+</html>
